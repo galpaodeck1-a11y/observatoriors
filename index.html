@@ -6,6 +6,17 @@
 <title>Ranking analistas RS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <h1>Ranking de remuneração das carreiras de analista com os maiores números de servidores no estado do Rio Grande do Sul</h1><br>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,sans-serif;display:flex;height:100vh;background:#fafafa;color:#222}
+aside{width:340px;border-right:1px solid #ddd;padding:12px;overflow:auto;background:#fff}
+main{flex:1;padding:16px;min-width:0}
+.btns{display:flex;gap:6px;margin-bottom:8px}
+button,input{font:inherit;padding:5px 8px;border:1px solid #bbb;border-radius:6px;background:#fff;cursor:pointer}
+input{width:100%;cursor:text;margin-bottom:8px}
+label{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:13px;cursor:pointer}
+.sw{width:12px;height:12px;border-radius:3px;flex:none}
+</style>
 </head>
 <body>
 <main><canvas id="c"></canvas></main>
@@ -21,18 +32,18 @@ for (const a of [2025, 2026]) for (let m = 1; m <= 12; m++) { const s = a * 100 
 
 const DADOS = {
 "Secretaria da Fazenda":[17899,15059,15048,16316,14430,14759,17710,15958,15791,16808,28265,16390,19054,15531,15196,17647,15746,15558,18344,16124,16262,18300],
-"Companhia Est de Processamento de Dados do RS":[14480,13607,12256,17560,11761,11898,12378,11549,12899,19106,11744,15841,15618,14117,12808,18830,12464,12482,13189,12176,13498,20186],
-"Secretaria de Planejamento, Governanca e Gestão":[13174,14356,12486,12274,12094,11940,11942,13152,12113,11948,22145,13756,12882,12696,11905,11913,12536,11933,12180,12092,12703,12295],
-"Fundação de Atendimento Socio-educativo":[14701,14684,11354,10748,10397,11201,11243,10812,10593,10952,14309,15131,19213,14427,12984,12184,12126,12284,12808,12402,11756,14459],
+"Companhia Est de Processamento de Dados do Rs":[14480,13607,12256,17560,11761,11898,12378,11549,12899,19106,11744,15841,15618,14117,12808,18830,12464,12482,13189,12176,13498,20186],
+"Secretaria de Planejamento, Governanca e Gestao":[13174,14356,12486,12274,12094,11940,11942,13152,12113,11948,22145,13756,12882,12696,11905,11913,12536,11933,12180,12092,12703,12295],
+"Fundacao de Atendimento Socio-educativo":[14701,14684,11354,10748,10397,11201,11243,10812,10593,10952,14309,15131,19213,14427,12984,12184,12126,12284,12808,12402,11756,14459],
 "Procuradoria-geral do Estado":[11778,11364,11042,10689,10924,11996,12075,10998,11246,11870,20973,12982,13746,12886,11940,11814,11699,12203,12753,12482,13037,13222],
 "Secretaria de Sistemas Penal e Socioeducativo":[12482,11610,11198,11059,11234,11306,11592,12972,11420,11909,22195,13795,11330,10573,10240,10235,10093,10142,10629,10529,10196,10530],
-"Instituto de Previdência do Estado do RS":[10942,11166,11013,10969,10983,11029,10943,11080,11095,11404,21591,12432,10976,11146,11016,11016,11078,11002,11170,11018,11084,11314],
-"Secretaria da Saúde":[9547,9267,8678,9501,9124,9482,9227,8827,9788,9278,17776,10636,9790,10376,9337,9439,9340,9271,9624,9363,12056,9462],
+"Instituto de Previdencia do Estado do Rs":[10942,11166,11013,10969,10983,11029,10943,11080,11095,11404,21591,12432,10976,11146,11016,11016,11078,11002,11170,11018,11084,11314],
+"Secretaria da Saude":[9547,9267,8678,9501,9124,9482,9227,8827,9788,9278,17776,10636,9790,10376,9337,9439,9340,9271,9624,9363,12056,9462],
 "Fundacao Est de Protecao Amb Henrique Röessler":[15413,16639,15707,16154,15591,15303,16805,16276,16733,17016,25373,18727,16531,19871,16930,18022,17876,18076,18412,18448,18844,23094]
 };
 
 // Qtde de servidores ativos e inativos (10/2026): aparece na frente do nome na legenda
-const QTD = {"Fundacao Est de Protecao Amb Henrique Röessler":263, "Secretaria da Fazenda":1287, "Companhia Est de Processamento de Dados do RS":882, "Secretaria de Planejamento, Governanca e Gestão":268, "Fundação de Atendimento Socio-educativo":193, "Procuradoria-geral do Estado":823, "Secretaria de Sistemas Penal e Socioeducativo":742, "Instituto de Previdencia do Estado do RS":217, "Secretaria da Saúde":1370};
+const QTD = {"Fundacao Est de Protecao Amb Henrique Röessler":263, "Secretaria da Fazenda":1287, "Companhia Est de Processamento de Dados do Rs":882, "Secretaria de Planejamento, Governanca e Gestao":268, "Fundacao de Atendimento Socio-educativo":193, "Procuradoria-geral do Estado":823, "Secretaria de Sistemas Penal e Socioeducativo":742, "Instituto de Previdencia do Estado do Rs":217, "Secretaria da Saude":1370};
 const nomes = Object.keys(DADOS);
 const rot = n => `${n} - ${QTD[n]} servidores`;
 const cor = i => `hsl(${(i * 137.5) % 360} 65% 45%)`;
