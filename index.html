@@ -1,93 +1,289 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ranking analistas RS</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;display:flex;height:100vh;background:#fafafa;color:#222}
-aside{width:340px;border-right:1px solid #ddd;padding:12px;overflow:auto;background:#fff}
-main{flex:1;padding:16px;min-width:0}
-.btns{display:flex;gap:6px;margin-bottom:8px}
-button,input{font:inherit;padding:5px 8px;border:1px solid #bbb;border-radius:6px;background:#fff;cursor:pointer}
-input{width:100%;cursor:text;margin-bottom:8px}
-label{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:13px;cursor:pointer}
-.sw{width:12px;height:12px;border-radius:3px;flex:none}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ranking analistas RS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      display: flex;
+      height: 100vh;
+      background: #fafafa;
+      color: #222;
+      overflow: hidden; /* prevent body scroll, aside scrolls internally */
+    }
+    /* Sidebar – fixed width, scrollable */
+    aside {
+      width: 360px;
+      flex-shrink: 0;
+      border-right: 1px solid #ddd;
+      padding: 16px 12px;
+      overflow-y: auto;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    /* Main chart area – flexible */
+    main {
+      flex: 1;
+      padding: 16px 20px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 8px 0;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .chart-container {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+    }
+    canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    /* Buttons row */
+    .btns {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    button, input {
+      font: inherit;
+      padding: 6px 12px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    button:hover {
+      background: #f0f0f0;
+    }
+    input {
+      width: 100%;
+      cursor: text;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+    }
+    /* Checkbox list */
+    .checkbox-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background 0.1s;
+    }
+    label:hover {
+      background: #f5f5f5;
+    }
+    .sw {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+    label input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+      padding: 0;
+      cursor: pointer;
+      accent-color: #2c7be5;
+    }
+    .search-wrapper {
+      margin-bottom: 8px;
+    }
+  </style>
 </head>
 <body>
-<h1>Ranking de remuneração das carreiras de analista com os maiores números de servidores no estado do Rio Grande do Sul</h1>
-<main><canvas id="c"></canvas></main>
-<script>
-// ====== CONFIGURE AQUI: séries exibidas por padrão ======
-const PADRAO = [
-  "Secretaria da Fazenda",
-];
-// ========================================================
 
-const meses = [];
-for (const a of [2025, 2026]) for (let m = 1; m <= 12; m++) { const s = a * 100 + m; if (s <= 202610) meses.push(String(s)); }
+  <!-- Sidebar with controls -->
+  <aside>
+    <h1>Ranking de remuneração das carreiras de analista com os maiores números de servidores no estado do Rio Grande do Sul</h1>
 
-const DADOS = {
-"Secretaria da Fazenda":[17899,15059,15048,16316,14430,14759,17710,15958,15791,16808,28265,16390,19054,15531,15196,17647,15746,15558,18344,16124,16262,18300],
-"Companhia Est de Processamento de Dados do Rs":[14480,13607,12256,17560,11761,11898,12378,11549,12899,19106,11744,15841,15618,14117,12808,18830,12464,12482,13189,12176,13498,20186],
-"Secretaria de Planejamento, Governanca e Gestao":[13174,14356,12486,12274,12094,11940,11942,13152,12113,11948,22145,13756,12882,12696,11905,11913,12536,11933,12180,12092,12703,12295],
-"Fundacao de Atendimento Socio-educativo":[14701,14684,11354,10748,10397,11201,11243,10812,10593,10952,14309,15131,19213,14427,12984,12184,12126,12284,12808,12402,11756,14459],
-"Procuradoria-geral do Estado":[11778,11364,11042,10689,10924,11996,12075,10998,11246,11870,20973,12982,13746,12886,11940,11814,11699,12203,12753,12482,13037,13222],
-"Secretaria de Sistemas Penal e Socioeducativo":[12482,11610,11198,11059,11234,11306,11592,12972,11420,11909,22195,13795,11330,10573,10240,10235,10093,10142,10629,10529,10196,10530],
-"Instituto de Previdencia do Estado do Rs":[10942,11166,11013,10969,10983,11029,10943,11080,11095,11404,21591,12432,10976,11146,11016,11016,11078,11002,11170,11018,11084,11314],
-"Secretaria da Saude":[9547,9267,8678,9501,9124,9482,9227,8827,9788,9278,17776,10636,9790,10376,9337,9439,9340,9271,9624,9363,12056,9462],
-"Fundacao Est de Protecao Amb Henrique Röessler":[15413,16639,15707,16154,15591,15303,16805,16276,16733,17016,25373,18727,16531,19871,16930,18022,17876,18076,18412,18448,18844,23094]
-};
+    <div class="btns">
+      <button id="bPadrao">Padrão</button>
+      <button id="bTodas">Todas</button>
+      <button id="bNenhuma">Nenhuma</button>
+    </div>
 
-// Qtde de servidores ativos e inativos (10/2026): aparece na frente do nome na legenda
-const QTD = {"Fundacao Est de Protecao Amb Henrique Röessler":263, "Secretaria da Fazenda":1287, "Companhia Est de Processamento de Dados do Rs":882, "Secretaria de Planejamento, Governanca e Gestao":268, "Fundacao de Atendimento Socio-educativo":193, "Procuradoria-geral do Estado":823, "Secretaria de Sistemas Penal e Socioeducativo":742, "Instituto de Previdencia do Estado do Rs":217, "Secretaria da Saude":1370};
-const nomes = Object.keys(DADOS);
-const rot = n => `${n} - ${QTD[n]} servidores`;
-const cor = i => `hsl(${(i * 137.5) % 360} 65% 45%)`;
-const ativos = new Set(PADRAO.filter(n => n in DADOS));
+    <div class="search-wrapper">
+      <input type="text" id="busca" placeholder="Buscar carreira...">
+    </div>
 
-const chart = new Chart(document.getElementById("c"), {
-  type: "line",
-  data: {
-    labels: meses,
-    datasets: nomes.map((n, i) => ({
-      label: rot(n), data: DADOS[n], borderColor: cor(i), backgroundColor: cor(i),
-      borderWidth: 2, pointRadius: 2, tension: 0, hidden: !ativos.has(n)
-    }))
-  },
-  options: {
-    responsive: true, maintainAspectRatio: false,
-    interaction: { mode: "nearest", intersect: false },
-    plugins: { legend: { display: false }, title: { display: true, text: "Série mensal por carreira" } },
-    scales: { y: { beginAtZero: true } }
-  }
-});
-document.querySelector("main").style.position = "relative";
+    <div id="lista" class="checkbox-list"></div>
+  </aside>
 
-const lista = document.getElementById("lista");
-const caixas = nomes.map((n, i) => {
-  const l = document.createElement("label");
-  l.innerHTML = `<input type="checkbox" style="width:auto;margin:0"><span class="sw" style="background:${cor(i)}"></span><span>${rot(n)}</span>`;
-  const cb = l.querySelector("input");
-  cb.checked = ativos.has(n);
-  cb.onchange = () => { chart.setDatasetVisibility(i, cb.checked); chart.update(); };
-  lista.appendChild(l);
-  return cb;
-});
-function aplicar(fn) {
-  nomes.forEach((n, i) => { const v = fn(n); caixas[i].checked = v; chart.setDatasetVisibility(i, v); });
-  chart.update();
-}
-bPadrao.onclick = () => aplicar(n => PADRAO.includes(n));
-bTodas.onclick = () => aplicar(() => true);
-bNenhuma.onclick = () => aplicar(() => false);
-busca.oninput = () => {
-  const q = busca.value.toLowerCase();
-  caixas.forEach((cb, i) => cb.parentElement.style.display = nomes[i].toLowerCase().includes(q) ? "" : "none");
-};
-</script>
+  <!-- Main chart area -->
+  <main>
+    <div class="chart-container">
+      <canvas id="c"></canvas>
+    </div>
+  </main>
+
+  <script>
+    (function() {
+      // ====== CONFIGURE AQUI: séries exibidas por padrão ======
+      const PADRAO = [
+        "Secretaria da Fazenda",
+      ];
+      // ========================================================
+
+      const meses = [];
+      for (const a of [2025, 2026]) {
+        for (let m = 1; m <= 12; m++) {
+          const s = a * 100 + m;
+          if (s <= 202610) meses.push(String(s));
+        }
+      }
+
+      const DADOS = {
+        "Secretaria da Fazenda": [17899,15059,15048,16316,14430,14759,17710,15958,15791,16808,28265,16390,19054,15531,15196,17647,15746,15558,18344,16124,16262,18300],
+        "Companhia Est de Processamento de Dados do Rs": [14480,13607,12256,17560,11761,11898,12378,11549,12899,19106,11744,15841,15618,14117,12808,18830,12464,12482,13189,12176,13498,20186],
+        "Secretaria de Planejamento, Governanca e Gestao": [13174,14356,12486,12274,12094,11940,11942,13152,12113,11948,22145,13756,12882,12696,11905,11913,12536,11933,12180,12092,12703,12295],
+        "Fundacao de Atendimento Socio-educativo": [14701,14684,11354,10748,10397,11201,11243,10812,10593,10952,14309,15131,19213,14427,12984,12184,12126,12284,12808,12402,11756,14459],
+        "Procuradoria-geral do Estado": [11778,11364,11042,10689,10924,11996,12075,10998,11246,11870,20973,12982,13746,12886,11940,11814,11699,12203,12753,12482,13037,13222],
+        "Secretaria de Sistemas Penal e Socioeducativo": [12482,11610,11198,11059,11234,11306,11592,12972,11420,11909,22195,13795,11330,10573,10240,10235,10093,10142,10629,10529,10196,10530],
+        "Instituto de Previdencia do Estado do Rs": [10942,11166,11013,10969,10983,11029,10943,11080,11095,11404,21591,12432,10976,11146,11016,11016,11078,11002,11170,11018,11084,11314],
+        "Secretaria da Saude": [9547,9267,8678,9501,9124,9482,9227,8827,9788,9278,17776,10636,9790,10376,9337,9439,9340,9271,9624,9363,12056,9462],
+        "Fundacao Est de Protecao Amb Henrique Röessler": [15413,16639,15707,16154,15591,15303,16805,16276,16733,17016,25373,18727,16531,19871,16930,18022,17876,18076,18412,18448,18844,23094]
+      };
+
+      // Qtde de servidores ativos e inativos (10/2026): aparece na frente do nome na legenda
+      const QTD = {
+        "Fundacao Est de Protecao Amb Henrique Röessler": 263,
+        "Secretaria da Fazenda": 1287,
+        "Companhia Est de Processamento de Dados do Rs": 882,
+        "Secretaria de Planejamento, Governanca e Gestao": 268,
+        "Fundacao de Atendimento Socio-educativo": 193,
+        "Procuradoria-geral do Estado": 823,
+        "Secretaria de Sistemas Penal e Socioeducativo": 742,
+        "Instituto de Previdencia do Estado do Rs": 217,
+        "Secretaria da Saude": 1370
+      };
+
+      const nomes = Object.keys(DADOS);
+      const rot = n => `${n} - ${QTD[n]} servidores`;
+      const cor = i => `hsl(${(i * 137.5) % 360} 65% 45%)`;
+      const ativos = new Set(PADRAO.filter(n => n in DADOS));
+
+      // Create chart
+      const ctx = document.getElementById('c').getContext('2d');
+      const chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: meses,
+          datasets: nomes.map((n, i) => ({
+            label: rot(n),
+            data: DADOS[n],
+            borderColor: cor(i),
+            backgroundColor: cor(i),
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0,
+            hidden: !ativos.has(n)
+          }))
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "nearest", intersect: false },
+          plugins: {
+            legend: { display: false },
+            title: { display: true, text: "Série mensal por carreira" }
+          },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // Build checkbox list
+      const lista = document.getElementById('lista');
+      const caixas = nomes.map((n, i) => {
+        const label = document.createElement('label');
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = ativos.has(n);
+
+        const swatch = document.createElement('span');
+        swatch.className = 'sw';
+        swatch.style.background = cor(i);
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = rot(n);
+
+        label.appendChild(cb);
+        label.appendChild(swatch);
+        label.appendChild(textSpan);
+
+        cb.addEventListener('change', () => {
+          chart.setDatasetVisibility(i, cb.checked);
+          chart.update();
+        });
+
+        lista.appendChild(label);
+        return cb;
+      });
+
+      // Helper: apply visibility to all datasets (and checkbox states)
+      function aplicar(fn) {
+        nomes.forEach((n, i) => {
+          const visivel = fn(n);
+          caixas[i].checked = visivel;
+          chart.setDatasetVisibility(i, visivel);
+        });
+        chart.update();
+      }
+
+      // Buttons
+      document.getElementById('bPadrao').addEventListener('click', () => {
+        aplicar(n => PADRAO.includes(n));
+      });
+
+      document.getElementById('bTodas').addEventListener('click', () => {
+        aplicar(() => true);
+      });
+
+      document.getElementById('bNenhuma').addEventListener('click', () => {
+        aplicar(() => false);
+      });
+
+      // Search filter
+      const buscaInput = document.getElementById('busca');
+      buscaInput.addEventListener('input', () => {
+        const q = buscaInput.value.toLowerCase();
+        caixas.forEach((cb, i) => {
+          const label = cb.closest('label');
+          if (label) {
+            label.style.display = nomes[i].toLowerCase().includes(q) ? '' : 'none';
+          }
+        });
+      });
+
+      // Ensure chart resizes correctly when container changes
+      // (Chart.js handles it automatically with responsive: true)
+    })();
+  </script>
 </body>
 </html>
