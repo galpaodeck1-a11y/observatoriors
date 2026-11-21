@@ -2,30 +2,59 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Série mensal por carreira</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
+:root{--bg:#fafafa;--card:#fff;--tx:#222;--mut:#666;--bd:#ddd;--grid:rgba(0,0,0,.08);--ac:#1a56db;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#111214;--card:#1c1d20;--tx:#eceef1;--mut:#9aa0a8;--bd:#33363b;--grid:rgba(255,255,255,.1);--ac:#6ea0ff}}
+:root[data-theme="dark"]{--bg:#111214;--card:#1c1d20;--tx:#eceef1;--mut:#9aa0a8;--bd:#33363b;--grid:rgba(255,255,255,.1);--ac:#6ea0ff}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,sans-serif;display:flex;height:100vh;background:#fafafa;color:#222}
-aside{width:340px;border-right:1px solid #ddd;padding:12px;overflow:auto;background:#fff}
-main{flex:1;padding:16px;min-width:0}
-.btns{display:flex;gap:6px;margin-bottom:8px}
-button,input{font:inherit;padding:5px 8px;border:1px solid #bbb;border-radius:6px;background:#fff;cursor:pointer}
-input{width:100%;cursor:text;margin-bottom:8px}
-label{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:13px;cursor:pointer}
-.sw{width:12px;height:12px;border-radius:3px;flex:none}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--tx);background-color:var(--bg)}
+.wrap{max-width:1100px;margin:0 auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+h1{font-size:1rem;line-height:1.3;margin:4px 2px 0;font-weight:600}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px}
+.chart{position:relative;height:56vh;min-height:280px;max-height:520px}
+.btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}
+button,input[type=search]{font:inherit;font-size:16px;min-height:44px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx)}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent}
+button:active{background:var(--bg)}
+input[type=search]{width:100%;padding:0 12px;margin-bottom:8px}
+label{display:flex;align-items:center;gap:10px;min-height:48px;padding:4px 6px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--bd)}
+label:last-child{border-bottom:0}
+label input{width:22px;height:22px;flex:none;margin:0;accent-color:var(--ac)}
+.sw{width:14px;height:14px;border-radius:4px;flex:none}
+.nm{font-size:14px;line-height:1.3;min-width:0}
+.nm small{display:block;color:var(--mut);font-size:12px}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:4px 0 8px}
+@media (min-width:860px){
+ .wrap{flex-direction:row;align-items:flex-start;padding:16px}
+ .side{width:340px;flex:none;order:0;max-height:calc(100vh - 32px);overflow:auto}
+ .mainc{flex:1;min-width:0;order:1}
+ .chart{height:70vh}
+}
+@media (max-width:859px){.side{order:2}.mainc{order:1}}
 </style>
 </head>
 <body>
-<aside>
-  <div class="btns">
+<div class="wrap">
+  <div class="mainc">
+    <h1>Ranking de remuneração das carreiras mais populosas de analista no Rio Grande do Sul</h1>
+    <div class="card" style="margin-top:8px"><div class="chart"><canvas id="c"></canvas></div></div>
+    <footer>*Dados obtidos na transparência estadual.</footer>
   </div>
-  <div id="lista"></div>
-</aside>
-<main><canvas id="c"></canvas>
-<footer>*Dados obtidos na transparência estadual.</footer>
-</main>
+  <div class="card side">
+    <div class="btns">
+      <button id="bPadrao" type="button">Padrão</button>
+      <button id="bTodas" type="button">Todas</button>
+      <button id="bNenhuma" type="button">Nenhuma</button>
+    </div>
+    <input id="busca" type="search" placeholder="Buscar carreira…" autocomplete="off">
+    <div id="lista"></div>
+  </div>
+</div>
 <script>
 // ====== CONFIGURE AQUI: séries exibidas por padrão ======
 const PADRAO = [
@@ -35,6 +64,8 @@ const PADRAO = [
 
 const meses = [];
 for (const a of [2025, 2026]) for (let m = 1; m <= 12; m++) { const s = a * 100 + m; if (s <= 202610) meses.push(String(s)); }
+const NM = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const fmtMes = s => NM[+s.slice(4) - 1] + "/" + s.slice(2, 4);
 
 const DADOS = {
 "Secretaria da Fazenda":[17899,15059,15048,16316,14430,14759,17710,15958,15791,16808,28265,16390,19054,15531,15196,17647,15746,15558,18344,16124,16262,18300],
@@ -48,35 +79,57 @@ const DADOS = {
 "Fundacao Est de Protecao Amb Henrique Röessler":[15413,16639,15707,16154,15591,15303,16805,16276,16733,17016,25373,18727,16531,19871,16930,18022,17876,18076,18412,18448,18844,23094]
 };
 
-// Qtde de servidores ativos e inativos (10/2026): aparece na frente do nome na legenda
+// Qtde de servidores ativos e inativos (10/2026)
 const QTD = {"Fundacao Est de Protecao Amb Henrique Röessler":263, "Secretaria da Fazenda":1287, "Companhia Est de Processamento de Dados do RS":882, "Secretaria de Planejamento, Governanca e Gestao":268, "Fundacao de Atendimento Socio-educativo":193, "Procuradoria-geral do Estado":823, "Secretaria de Sistemas Penal e Socioeducativo":742, "Instituto de Previdencia do Estado do RS":217, "Secretaria da Saude":1370};
 const nomes = Object.keys(DADOS);
 const rot = n => `${n} - ${QTD[n]} servidores`;
-const cor = i => `hsl(${(i * 137.5) % 360} 65% 45%)`;
+const cor = i => `hsl(${(i * 137.5) % 360} 65% 50%)`;
 const ativos = new Set(PADRAO.filter(n => n in DADOS));
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-const chart = new Chart(document.getElementById("c"), {
+Chart.defaults.font.size = 11;
+function tema() {
+  Chart.defaults.color = css("--mut");
+  Chart.defaults.borderColor = css("--grid");
+  if (window.chart) chart.update();
+}
+tema();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", tema);
+
+const chart = window.chart = new Chart($("c"), {
   type: "line",
   data: {
-    labels: meses,
+    labels: meses.map(fmtMes),
     datasets: nomes.map((n, i) => ({
       label: rot(n), data: DADOS[n], borderColor: cor(i), backgroundColor: cor(i),
-      borderWidth: 2, pointRadius: 2, tension: 0, hidden: !ativos.has(n)
+      borderWidth: 2, pointRadius: 2, pointHoverRadius: 5, tension: 0, hidden: !ativos.has(n)
     }))
   },
   options: {
     responsive: true, maintainAspectRatio: false,
     interaction: { mode: "nearest", intersect: false },
-    plugins: { legend: { display: false }, title: { display: true, text: "Ranking de remuneração das carreiras mais populosas de analista no Rio Grande do Sul" } },
-    scales: { y: { beginAtZero: true } }
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        padding: 8, bodyFont: { size: 12 }, titleFont: { size: 12 },
+        callbacks: {
+          label: c => " " + c.dataset.label.split(" - ")[0] + ": " + c.parsed.y.toLocaleString("pt-BR")
+        }
+      }
+    },
+    scales: {
+      y: { beginAtZero: true, ticks: { callback: v => v >= 1000 ? (v / 1000).toLocaleString("pt-BR") + " mil" : v } },
+      x: { ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 6 } }
+    }
   }
 });
-document.querySelector("main").style.position = "relative";
 
-const lista = document.getElementById("lista");
+const lista = $("lista");
 const caixas = nomes.map((n, i) => {
   const l = document.createElement("label");
-  l.innerHTML = `<input type="checkbox" style="width:auto;margin:0"><span class="sw" style="background:${cor(i)}"></span><span>${rot(n)}</span>`;
+  l.innerHTML = `<input type="checkbox"><span class="sw" style="background:${cor(i)}"></span><span class="nm"></span>`;
+  l.querySelector(".nm").innerHTML = `${n}<small>${QTD[n]} servidores</small>`;
   const cb = l.querySelector("input");
   cb.checked = ativos.has(n);
   cb.onchange = () => { chart.setDatasetVisibility(i, cb.checked); chart.update(); };
@@ -87,14 +140,13 @@ function aplicar(fn) {
   nomes.forEach((n, i) => { const v = fn(n); caixas[i].checked = v; chart.setDatasetVisibility(i, v); });
   chart.update();
 }
-bPadrao.onclick = () => aplicar(n => PADRAO.includes(n));
-bTodas.onclick = () => aplicar(() => true);
-bNenhuma.onclick = () => aplicar(() => false);
-busca.oninput = () => {
-  const q = busca.value.toLowerCase();
+$("bPadrao").onclick = () => aplicar(n => PADRAO.includes(n));
+$("bTodas").onclick = () => aplicar(() => true);
+$("bNenhuma").onclick = () => aplicar(() => false);
+$("busca").oninput = e => {
+  const q = e.target.value.toLowerCase();
   caixas.forEach((cb, i) => cb.parentElement.style.display = nomes[i].toLowerCase().includes(q) ? "" : "none");
 };
 </script>
-<footer>*Dados obtidos na transparência estadual.</footer>
 </body>
 </html>
